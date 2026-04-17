@@ -11,6 +11,9 @@
     "launch-chrome": "'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' --remote-debugging-port=9222 --user-data-dir=.chrome-session --no-first-run &",
     "reset": "rm -f tmp/progress.json tmp/failed.json && echo 'Reset: progress and failed cleared. Ready for a new city run.'"
   },
+  "engines": {
+    "node": ">=18"
+  },
   "dependencies": {
     "playwright": "^1.44.0"
   },

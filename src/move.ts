@@ -208,7 +208,10 @@ async function main() {
     return;
   }
 
-  const browser = await chromium.connectOverCDP('http://127.0.0.1:9222');
+  const browser = await chromium.connectOverCDP('http://127.0.0.1:9222').catch(() => {
+    console.error('Could not connect to Chrome. Run `pnpm run launch-chrome` first, then try again.');
+    process.exit(1);
+  });
   const context = browser.contexts()[0];
   const page = context.pages()[0] ?? await context.newPage();
 

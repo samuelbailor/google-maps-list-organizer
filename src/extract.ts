@@ -44,17 +44,6 @@ function extractNextCursor(responseText: string): string | null {
   return typeof cursor === 'string' && cursor.length > 10 ? cursor : null;
 }
 
-async function captureGetlistUrls(page: Page, count: number): Promise<string[]> {
-  const urls: string[] = [];
-  return new Promise((resolve) => {
-    page.on('request', (req) => {
-      if (!req.url().includes('entitylist/getlist')) return;
-      urls.push(req.url());
-      if (urls.length >= count) resolve(urls);
-    });
-  });
-}
-
 async function fetchWithNextToken(page: Page, baseUrl: string, nextToken: string, limit: number): Promise<string> {
   // data[1] is standard base64 (+, /) but the URL uses URL-safe base64 (-, _)
   const urlSafeToken = nextToken.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
@@ -74,7 +63,10 @@ async function main() {
     console.warn('');
   }
 
-  const browser = await chromium.connectOverCDP('http://127.0.0.1:9222');
+  const browser = await chromium.connectOverCDP('http://127.0.0.1:9222').catch(() => {
+    console.error('Could not connect to Chrome. Run `pnpm run launch-chrome` first, then try again.');
+    process.exit(1);
+  });
   const context = browser.contexts()[0];
   const page = context.pages()[0] ?? await context.newPage();
 
