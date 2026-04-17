@@ -3,7 +3,8 @@
 export const BOUNDS = {
   seoul:     { latMin: 37.40, latMax: 37.72, lngMin: 126.75, lngMax: 127.25 }, // http://bboxfinder.com/#37.40,126.75,37.72,127.25
   busan:     { latMin: 35.02, latMax: 35.28, lngMin: 128.90, lngMax: 129.30 }, // http://bboxfinder.com/#35.02,128.90,35.28,129.30
-  jeju:      { latMin: 33.20, latMax: 33.60, lngMin: 126.15, lngMax: 127.00 }, // http://bboxfinder.com/#33.20,126.15,33.60,127.00 (includes Udo)
+  jeju:      { latMin: 33.20, latMax: 33.60, lngMin: 126.15, lngMax: 127.00 }, // http://bboxfinder.com/#33.20,126.15,33.60,127.00 (whole island - includes Udo)
+  japan:     { latMin: 30.50, latMax: 45.70, lngMin: 129.50, lngMax: 153.00 }, // http://bboxfinder.com/#30.50,129.50,45.70,153.00 (Kyushu, Honshu, Shikoku, Hokkaido)
   tokyo:     { latMin: 35.55, latMax: 35.82, lngMin: 139.60, lngMax: 139.92 }, // http://bboxfinder.com/#35.55,139.60,35.82,139.92
   taiwan:    { latMin: 21.90, latMax: 25.35, lngMin: 119.90, lngMax: 122.10 }, // http://bboxfinder.com/#21.90,119.90,25.35,122.10 (whole island)
   taipei:    { latMin: 24.95, latMax: 25.18, lngMin: 121.42, lngMax: 121.67 }, // http://bboxfinder.com/#24.95,121.42,25.18,121.67
@@ -18,11 +19,11 @@ export const config = {
   sourceList: 'Want to go',
 
   // Name of the list you're moving places TO — must be created manually in Google Maps first.
-  destList: 'Taiwan WTG',
+  destList: 'Japan WTG',
 
   // Bounding box for filtering places by location. Pick a preset from BOUNDS above,
   // or define your own: { latMin, latMax, lngMin, lngMax }.
-  bounds: BOUNDS.taiwan,
+  bounds: BOUNDS.japan,
 
   // Number of places fetched per API page. 500 is the Maps maximum — no need to change this default value.
   pageSize: 500,
