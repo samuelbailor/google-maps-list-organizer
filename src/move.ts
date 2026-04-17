@@ -14,6 +14,10 @@ const limit = parseInt(args.find(a => a.startsWith('--limit='))?.split('=')[1] ?
 const dryRun = args.includes('--dry-run');
 const retryFailed = args.includes('--retry');
 
+function placeKey(p: SavedPlace): string {
+  return `${p.name}|||${p.address}`;
+}
+
 function loadProgress(): Set<string> {
   if (!fs.existsSync(PROGRESS_FILE)) return new Set();
   const data = JSON.parse(fs.readFileSync(PROGRESS_FILE, 'utf-8')) as string[];
@@ -27,11 +31,26 @@ function saveProgress(done: Set<string>) {
 function loadFailed(): Set<string> {
   if (!fs.existsSync(FAILED_FILE)) return new Set();
   const data = JSON.parse(fs.readFileSync(FAILED_FILE, 'utf-8')) as SavedPlace[];
-  return new Set(data.map(p => p.url));
+  return new Set(data.map(placeKey));
 }
 
 function saveFailed(failed: SavedPlace[]) {
   fs.writeFileSync(FAILED_FILE, JSON.stringify(failed, null, 2));
+}
+
+async function removeFromAllLists(page: Page): Promise<void> {
+  const saveBtn = page.locator('button[data-value^="Saved"]');
+  await saveBtn.click();
+  await page.waitForTimeout(PAUSE_MS);
+  const listItems = page.locator('div[role="menuitemradio"]');
+  if (!await listItems.first().isVisible().catch(() => false)) return;
+  const checkedItems = listItems.filter({ has: page.locator('[aria-checked="true"]') });
+  const count = await checkedItems.count();
+  for (let i = 0; i < count; i++) {
+    await checkedItems.nth(0).click();
+    await page.waitForTimeout(500);
+  }
+  await page.keyboard.press('Escape');
 }
 
 async function movePlaceToList(page: Page, place: SavedPlace): Promise<boolean> {
@@ -68,6 +87,12 @@ async function movePlaceToList(page: Page, place: SavedPlace): Promise<boolean> 
 
   // Wait for the save button to appear (place card may slide in after a click)
   const saveBtnFound = await saveBtn.waitFor({ state: 'visible', timeout: 8000 }).then(() => true).catch(() => false);
+
+  if (saveBtnFound && await page.locator('text=Permanently closed').isVisible().catch(() => false)) {
+    console.log(`  ✦ Permanently closed — removing from all lists`);
+    await removeFromAllLists(page);
+    return true;
+  }
   if (!saveBtnFound) {
     const screenshotSlug = place.name.replace(/[^a-z0-9]+/gi, '-').toLowerCase().slice(0, 40);
     const screenshotPath = `tmp/screenshots/failure-${screenshotSlug}.png`;
@@ -170,7 +195,7 @@ async function main() {
   const done = loadProgress();
   const previouslyFailed = retryFailed ? new Set<string>() : loadFailed();
   const remaining = seoulPlaces
-    .filter(p => !done.has(p.url) && !previouslyFailed.has(p.url))
+    .filter(p => !done.has(placeKey(p)) && !previouslyFailed.has(placeKey(p)))
     .slice(0, isFinite(limit) ? limit : undefined);
 
   const skippedFailed = retryFailed ? 0 : previouslyFailed.size;
@@ -198,7 +223,7 @@ async function main() {
     const ok = await movePlaceToList(page, place);
     if (ok) {
       if (!dryRun) {
-        done.add(place.url);
+        done.add(placeKey(place));
         saveProgress(done);
       }
       moved++;
