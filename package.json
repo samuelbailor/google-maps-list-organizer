@@ -4,8 +4,9 @@
   "private": true,
   "packageManager": "pnpm@10.32.1",
   "scripts": {
-    "start": "tsx src/main.ts",
-    "dev": "node --watch --import tsx/esm src/main.ts",
+    "extract": "tsx src/extract.ts",
+    "move": "tsx src/move.ts",
+    "dev": "node --watch --import tsx/esm src/extract.ts",
     "typecheck": "tsc --noEmit",
     "launch-chrome": "'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' --remote-debugging-port=9222 --user-data-dir=.chrome-session --no-first-run &"
   },

@@ -8,7 +8,8 @@ Playwright + TypeScript CLI that bulk-organizes Google Maps saved places by city
 
 ```bash
 pnpm install          # install deps
-pnpm start            # extract places → tmp/places.json + tmp/seoul-places.json
+pnpm extract          # extract places → tmp/places.json + tmp/seoul-places.json
+pnpm move             # move Seoul places to "Seoul WTG" list
 pnpm run typecheck    # type-check without running
 pnpm run launch-chrome  # open Chrome with CDP debug port (run before pnpm start)
 ```

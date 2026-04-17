@@ -31,14 +31,21 @@ pnpm run launch-chrome
 ```
 Sign into Google Maps in the window that opens. This only needs to happen once — the session is saved to `.chrome-session/`.
 
-**Step 2 — Run:**
+**Step 2 — Extract:**
 ```bash
-pnpm start
+pnpm extract
 ```
 
 Outputs:
 - `tmp/places.json` — all saved places with coordinates
 - `tmp/seoul-places.json` — Seoul-only places
+
+**Step 3 — Move:**
+```bash
+pnpm move
+```
+
+Moves each Seoul place from "Want to go" to "Seoul WTG" via the Maps UI. Saves progress to `tmp/progress.json` after each move — safe to interrupt and resume.
 
 ## Configuration
 

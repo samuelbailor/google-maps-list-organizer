@@ -13,8 +13,9 @@ function parsePlaces(responseText: string): SavedPlace[] {
   const data = JSON.parse(responseText.replace(/^\)\]\}'/, '').trim());
 
   // Response structure: data[0][8] = array of place entries
-  // Each entry: [null, [null, null, address, null, null, [null, null, lat, lng], ..., placePath], name, ...]
+  // Each entry: [null, [null, null, address, null, shortAddr, [null,null,lat,lng], placeIds, placePath], name, ...]
   const entries: unknown[] = data?.[0]?.[8] ?? [];
+
   const places: SavedPlace[] = [];
 
   for (const entry of entries) {
@@ -25,7 +26,6 @@ function parsePlaces(responseText: string): SavedPlace[] {
     const name: string = entry[2] ?? inner[1] ?? '';
     const address: string = inner[2] ?? '';
     const coords = inner[5];
-    const placePath: string = inner[8] ?? '';
 
     if (!Array.isArray(coords) || coords.length < 4) continue;
     const lat: number = coords[2];
@@ -35,7 +35,7 @@ function parsePlaces(responseText: string): SavedPlace[] {
     places.push({
       name,
       address,
-      url: placePath ? `https://www.google.com${placePath}` : undefined,
+      url: `https://www.google.com/maps/search/${encodeURIComponent(name)}/@${lat},${lng},18z`,
       coordinates: { lat, lng },
     });
   }
