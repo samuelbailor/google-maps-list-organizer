@@ -60,9 +60,6 @@ Uses Chrome's remote debugging protocol (CDP) — `pnpm run launch-chrome` opens
 - `--limit=N` and `--dry-run` flags for safe testing
 - ~91% success rate on Taiwan (64 places); remaining failures are places renamed or deleted since saving
 
-### Future
-- CLI interface instead of editing `config.ts`
-- Rate limiting detection and automatic backoff
 
 ## Known Constraints
 
