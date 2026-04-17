@@ -8,10 +8,11 @@ const FAILED_FILE = 'tmp/failed.json';
 const PAUSE_MS = 2000;
 const BETWEEN_PLACES_MS = () => 3000 + Math.random() * 2000; // 3–5s between places
 
-// CLI flags: --limit=N to process only N places, --dry-run to navigate without clicking
+// CLI flags: --limit=N to process only N places, --dry-run to navigate without clicking, --retry to retry failed places
 const args = process.argv.slice(2);
 const limit = parseInt(args.find(a => a.startsWith('--limit='))?.split('=')[1] ?? 'Infinity');
 const dryRun = args.includes('--dry-run');
+const retryFailed = args.includes('--retry');
 
 function loadProgress(): Set<string> {
   if (!fs.existsSync(PROGRESS_FILE)) return new Set();
@@ -21,6 +22,12 @@ function loadProgress(): Set<string> {
 
 function saveProgress(done: Set<string>) {
   fs.writeFileSync(PROGRESS_FILE, JSON.stringify([...done], null, 2));
+}
+
+function loadFailed(): Set<string> {
+  if (!fs.existsSync(FAILED_FILE)) return new Set();
+  const data = JSON.parse(fs.readFileSync(FAILED_FILE, 'utf-8')) as SavedPlace[];
+  return new Set(data.map(p => p.url));
 }
 
 function saveFailed(failed: SavedPlace[]) {
@@ -36,6 +43,13 @@ async function movePlaceToList(page: Page, place: SavedPlace): Promise<boolean> 
   // If the search returned multiple results, find and click the saved one
   const saveBtn = page.locator('button[data-value^="Saved"]');
   if (!await saveBtn.isVisible().catch(() => false)) {
+    // Single wrong result (e.g. different city) — unsaved button present, bail fast
+    const unsavedBtn = page.locator('button[data-value="Save"]');
+    if (await unsavedBtn.isVisible().catch(() => false)) {
+      console.log(`  ✗ Place not saved in source list (wrong search result) — skipping`);
+      return false;
+    }
+
     const resultsList = page.locator('div[role="article"]');
     const resultsCount = await resultsList.count().catch(() => 0);
     if (resultsCount > 0) {
@@ -55,8 +69,11 @@ async function movePlaceToList(page: Page, place: SavedPlace): Promise<boolean> 
   // Wait for the save button to appear (place card may slide in after a click)
   const saveBtnFound = await saveBtn.waitFor({ state: 'visible', timeout: 8000 }).then(() => true).catch(() => false);
   if (!saveBtnFound) {
-    await page.screenshot({ path: 'tmp/failure-screenshot.png' });
-    console.log(`  ✗ Save button not found (screenshot → tmp/failure-screenshot.png)`);
+    const screenshotSlug = place.name.replace(/[^a-z0-9]+/gi, '-').toLowerCase().slice(0, 40);
+    const screenshotPath = `tmp/screenshots/failure-${screenshotSlug}.png`;
+    fs.mkdirSync('tmp/screenshots', { recursive: true });
+    await page.screenshot({ path: screenshotPath });
+    console.log(`  ✗ Save button not found (screenshot → ${screenshotPath})`);
     return false;
   }
 
@@ -90,7 +107,7 @@ async function movePlaceToList(page: Page, place: SavedPlace): Promise<boolean> 
     return true;
   }
 
-  // Step 1: add to dest list
+  // Step 1: add to dest list (close picker first if already in both lists)
   if (destChecked !== 'true') {
     await destItem.click();
     // Wait for save to register — check for failure toast
@@ -101,6 +118,10 @@ async function movePlaceToList(page: Page, place: SavedPlace): Promise<boolean> 
       await page.keyboard.press('Escape');
       return false;
     }
+  } else {
+    // Already in dest — picker is still open, close it before re-opening
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(PAUSE_MS);
   }
 
   // Step 2: re-open picker — wait for button to update to "Saved (2)" then click
@@ -147,9 +168,13 @@ async function main() {
   );
 
   const done = loadProgress();
-  const remaining = seoulPlaces.filter(p => !done.has(p.url)).slice(0, isFinite(limit) ? limit : undefined);
+  const previouslyFailed = retryFailed ? new Set<string>() : loadFailed();
+  const remaining = seoulPlaces
+    .filter(p => !done.has(p.url) && !previouslyFailed.has(p.url))
+    .slice(0, isFinite(limit) ? limit : undefined);
 
-  console.log(`Seoul places: ${seoulPlaces.length} total, ${done.size} already moved, ${remaining.length} to process`);
+  const skippedFailed = retryFailed ? 0 : previouslyFailed.size;
+  console.log(`Seoul places: ${seoulPlaces.length} total, ${done.size} moved, ${skippedFailed > 0 ? `${skippedFailed} skipped (failed), ` : ''}${remaining.length} to process`);
   if (dryRun) console.log('DRY RUN — navigating only, no changes\n');
   else console.log('');
 
@@ -163,7 +188,10 @@ async function main() {
   const page = context.pages()[0] ?? await context.newPage();
 
   let moved = 0;
-  const failedPlaces: SavedPlace[] = [];
+  // When retrying, start with the full prior failed list so unretried failures are preserved
+  const failedPlaces: SavedPlace[] = retryFailed && fs.existsSync(FAILED_FILE)
+    ? JSON.parse(fs.readFileSync(FAILED_FILE, 'utf-8'))
+    : [];
 
   for (const place of remaining) {
     process.stdout.write(`[${moved + failedPlaces.length + 1}/${remaining.length}] "${place.name}" ... `);

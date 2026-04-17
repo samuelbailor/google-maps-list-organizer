@@ -51,6 +51,7 @@ Moves each matching place from the source list to the destination list via the M
 ```bash
 pnpm move --limit=5      # process only 5 places (for testing)
 pnpm move --dry-run      # navigate without making changes
+pnpm move --retry        # retry previously failed places (skipped by default)
 ```
 
 ## Configuration
