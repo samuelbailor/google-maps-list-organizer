@@ -38,7 +38,7 @@ pnpm run launch-chrome    # open Chrome with CDP debug port (must quit Chrome fi
 ```ts
 sourceList: 'Want to go'   // must match Maps list name exactly
 destList: 'Tokyo WTG'      // must be created manually in Maps first
-bounds: CITY_BOUNDS.tokyo  // or custom { latMin, latMax, lngMin, lngMax }
+bounds: BOUNDS.tokyo       // or custom { latMin, latMax, lngMin, lngMax }
 pageSize: 500              // items per API page (Maps max)
 ```
 

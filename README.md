@@ -67,12 +67,12 @@ Edit `src/config.ts`:
 export const config = {
   sourceList: 'Want to go',       // your source list name
   destList: 'Tokyo WTG',          // destination list (must exist in Maps)
-  bounds: CITY_BOUNDS.tokyo,      // or set custom: { latMin, latMax, lngMin, lngMax }
+  bounds: BOUNDS.tokyo,           // or set custom: { latMin, latMax, lngMin, lngMax }
   pageSize: 500,
 };
 ```
 
-Built-in city presets are in `CITY_BOUNDS` — pick one or define your own. Visualize any bounding box at [bboxfinder.com](http://bboxfinder.com).
+Built-in presets are in `BOUNDS` — pick one or define your own. Visualize any bounding box at [bboxfinder.com](http://bboxfinder.com).
 
 ## Performance
 
