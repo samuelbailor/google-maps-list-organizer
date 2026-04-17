@@ -4,18 +4,13 @@ import { config } from './config';
 import { SavedPlace } from './types';
 
 function isSeoul(lat: number, lng: number): boolean {
-  const { latMin, latMax, lngMin, lngMax } = config.seoulBounds;
+  const { latMin, latMax, lngMin, lngMax } = config.bounds;
   return lat >= latMin && lat <= latMax && lng >= lngMin && lng <= lngMax;
 }
 
 function parsePlaces(responseText: string): SavedPlace[] {
-  // Strip the XSSI prefix ")]}'" that Google prepends to prevent JSON hijacking
   const data = JSON.parse(responseText.replace(/^\)\]\}'/, '').trim());
-
-  // Response structure: data[0][8] = array of place entries
-  // Each entry: [null, [null, null, address, null, shortAddr, [null,null,lat,lng], placeIds, placePath], name, ...]
   const entries: unknown[] = data?.[0]?.[8] ?? [];
-
   const places: SavedPlace[] = [];
 
   for (const entry of entries) {
@@ -24,6 +19,7 @@ function parsePlaces(responseText: string): SavedPlace[] {
     if (!Array.isArray(inner)) continue;
 
     const name: string = entry[2] ?? inner[1] ?? '';
+    const note: string = entry[3] ?? '';
     const address: string = inner[2] ?? '';
     const coords = inner[5];
 
@@ -33,8 +29,7 @@ function parsePlaces(responseText: string): SavedPlace[] {
     if (typeof lat !== 'number' || typeof lng !== 'number') continue;
 
     places.push({
-      name,
-      address,
+      name, note, address,
       url: `https://www.google.com/maps/search/${encodeURIComponent(name)}/@${lat},${lng},18z`,
       coordinates: { lat, lng },
     });
@@ -43,15 +38,31 @@ function parsePlaces(responseText: string): SavedPlace[] {
   return places;
 }
 
-async function fetchPage(page: Page, offset: number): Promise<string> {
-  const url = config.getlistUrl
-    .replace('{LIMIT}', String(config.pageSize))
-    .replace('{OFFSET}', String(offset));
+function extractNextCursor(responseText: string): string | null {
+  const data = JSON.parse(responseText.replace(/^\)\]\}'/, '').trim());
+  const cursor = data?.[1];
+  return typeof cursor === 'string' && cursor.length > 10 ? cursor : null;
+}
 
+async function captureGetlistUrls(page: Page, count: number): Promise<string[]> {
+  const urls: string[] = [];
+  return new Promise((resolve) => {
+    page.on('request', (req) => {
+      if (!req.url().includes('entitylist/getlist')) return;
+      urls.push(req.url());
+      if (urls.length >= count) resolve(urls);
+    });
+  });
+}
+
+async function fetchWithNextToken(page: Page, baseUrl: string, nextToken: string, limit: number): Promise<string> {
+  // data[1] is standard base64 (+, /) but the URL uses URL-safe base64 (-, _)
+  const urlSafeToken = nextToken.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+  const next = baseUrl.replace(/!4i\d+/, `!4i${limit}!5B${urlSafeToken}`);
   return page.evaluate(async (u) => {
     const res = await fetch(u);
     return res.text();
-  }, url);
+  }, next);
 }
 
 async function main() {
@@ -59,26 +70,68 @@ async function main() {
   const context = browser.contexts()[0];
   const page = context.pages()[0] ?? await context.newPage();
 
-  const allPlaces: SavedPlace[] = [];
-  let offset = 0;
+  // Navigate to saved list and intercept the getlist request to get base URL + initial cursor
+  // Collect ALL getlist requests fired by Maps as we scroll through the list
+  const capturedUrls: string[] = [];
+  page.on('request', (req) => {
+    if (req.url().includes('entitylist/getlist')) capturedUrls.push(req.url());
+  });
 
-  while (offset < config.totalPlaces) {
-    console.log(`Fetching places ${offset}–${Math.min(offset + config.pageSize, config.totalPlaces)}...`);
-    const text = await fetchPage(page, offset);
+  console.log(`Navigating to "${config.sourceList}" to capture initial API request...`);
+  await page.goto('https://www.google.com/maps', { waitUntil: 'domcontentloaded' });
+  await page.waitForTimeout(2000);
+  await page.getByRole('button', { name: 'Saved' }).click();
+  await page.waitForTimeout(2000);
+  await page.getByText(config.sourceList, { exact: false }).first().click();
+  await page.waitForTimeout(3000);
+
+  await page.waitForTimeout(2000);
+
+  // Snapshot after initial load
+  const pageUrls = [...capturedUrls];
+  if (pageUrls.length === 0) throw new Error('No getlist request captured — make sure you are logged into Google Maps');
+
+  const baseUrl = pageUrls[0];
+  const allPlaces: SavedPlace[] = [];
+  let pageNum = 1;
+  let nextToken: string | null = null;
+
+  while (true) {
+    console.log(`Fetching page ${pageNum}...`);
+    const text = pageNum === 1
+      ? await page.evaluate(async (u) => { const r = await fetch(u); return r.text(); }, baseUrl)
+      : await fetchWithNextToken(page, baseUrl, nextToken!, config.pageSize);
+
     const places = parsePlaces(text);
     if (places.length === 0) break;
     allPlaces.push(...places);
+
+    nextToken = extractNextCursor(text);
     console.log(`  Got ${places.length} (total: ${allPlaces.length})`);
-    offset += config.pageSize;
+
+    if (!nextToken) break;
+    pageNum++;
   }
 
-  const seoulPlaces = allPlaces.filter(p => isSeoul(p.coordinates.lat, p.coordinates.lng));
+  // Deduplicate by URL (same name + coords = true duplicate)
+  const seen = new Set<string>();
+  const uniquePlaces = allPlaces.filter(p => {
+    if (!p.name) return false; // drop entries with no name
+    if (seen.has(p.url)) return false;
+    seen.add(p.url);
+    return true;
+  });
+
+  const dupeCount = allPlaces.length - uniquePlaces.length;
+  if (dupeCount > 0) console.log(`Removed ${dupeCount} duplicates/unnamed entries`);
+
+  const seoulPlaces = uniquePlaces.filter(p => isSeoul(p.coordinates.lat, p.coordinates.lng));
 
   fs.mkdirSync('tmp', { recursive: true });
-  fs.writeFileSync('tmp/places.json', JSON.stringify(allPlaces, null, 2));
+  fs.writeFileSync('tmp/places.json', JSON.stringify(uniquePlaces, null, 2));
   fs.writeFileSync('tmp/seoul-places.json', JSON.stringify(seoulPlaces, null, 2));
 
-  console.log(`\nTotal: ${allPlaces.length} places`);
+  console.log(`\nTotal: ${uniquePlaces.length} places`);
   console.log(`Seoul: ${seoulPlaces.length} places`);
   console.log('→ tmp/places.json');
   console.log('→ tmp/seoul-places.json');
