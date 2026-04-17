@@ -54,6 +54,11 @@ pnpm move --dry-run      # navigate without making changes
 pnpm move --retry        # retry previously failed places (skipped by default)
 ```
 
+**Switching to a new city?** Update `src/config.ts`, then clear progress before re-running:
+```bash
+pnpm reset
+```
+
 ## Configuration
 
 Edit `src/config.ts`:

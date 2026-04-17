@@ -66,6 +66,14 @@ async function fetchWithNextToken(page: Page, baseUrl: string, nextToken: string
 }
 
 async function main() {
+  if (fs.existsSync('tmp/progress.json') || fs.existsSync('tmp/failed.json')) {
+    console.warn('⚠  Stale progress detected (tmp/progress.json or tmp/failed.json exists).');
+    console.warn('   If you are starting a new city run, clear it first: pnpm reset');
+    console.warn('   Continuing in 5 seconds — press Ctrl+C to abort...');
+    await new Promise(resolve => setTimeout(resolve, 5000));
+    console.warn('');
+  }
+
   const browser = await chromium.connectOverCDP('http://127.0.0.1:9222');
   const context = browser.contexts()[0];
   const page = context.pages()[0] ?? await context.newPage();
