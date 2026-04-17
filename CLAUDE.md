@@ -7,39 +7,46 @@ Playwright + TypeScript CLI that bulk-organizes Google Maps saved places by city
 ## Commands
 
 ```bash
-pnpm install          # install deps
-pnpm extract          # extract places → tmp/places.json + tmp/seoul-places.json
-pnpm move             # move Seoul places to "Seoul WTG" list
-pnpm run typecheck    # type-check without running
-pnpm run launch-chrome  # open Chrome with CDP debug port (run before pnpm start)
+pnpm install              # install deps
+pnpm extract              # fetch all places → tmp/places.json + tmp/seoul-places.json
+pnpm move                 # move matching places to dest list
+pnpm move --limit=N       # test with N places
+pnpm move --dry-run       # navigate only, no changes
+pnpm run typecheck        # type-check without running
+pnpm run launch-chrome    # open Chrome with CDP debug port (must quit Chrome first)
 ```
 
-## Architecture
+## Source files
 
-- `src/main.ts` — entry point: fetches all places, parses, filters, writes to tmp/
-- `src/config.ts` — all hardcoded values (list names, bounding box, getlist URL, total count)
+- `src/extract.ts` — navigates to source list, intercepts `getlist` API request, paginates via cursor token, filters by bounding box, writes `tmp/places.json` + `tmp/seoul-places.json`
+- `src/move.ts` — reads `tmp/seoul-places.json`, moves each place via Maps UI with resume/progress support
+- `src/config.ts` — all user-configurable values (list names, bounding box, page size)
 - `src/types.ts` — `SavedPlace` interface
 
 ## Key technical decisions
 
-**CDP over launchPersistentContext:** Google blocks sign-in from Playwright-launched browsers (detects `--enable-automation` flag). We instead launch real Chrome manually with `--remote-debugging-port=9222` and connect via `chromium.connectOverCDP()`. The user signs in once; session persists in `.chrome-session/`.
+**CDP over launchPersistentContext:** Google blocks sign-in from Playwright-launched browsers (detects `--enable-automation`). We launch real Chrome manually with `--remote-debugging-port=9222` and connect via `chromium.connectOverCDP()`.
 
-**getlist API over DOM scraping:** Map pins render on an HTML5 canvas — no DOM selectors work. Google's internal `getlist` endpoint returns all 2,974 places with coordinates in ~6 paginated fetches. URL captured from browser network tab; contains a session token that may expire.
+**getlist API:** Map pins render on HTML5 canvas — no DOM selectors work. `pnpm extract` navigates to the source list, intercepts the `getlist` request fired by Maps, then paginates using the `!5B` cursor token found at `data[1]` in each response (standard base64 → URL-safe base64).
 
-**Bounding box over address matching:** Seoul coordinates check (lat 37.40–37.72, lng 126.75–127.25) is faster and more reliable than string-matching Korean/English address variants.
+**Two-cycle picker interaction:** Google Maps closes the list picker after each click. Moving requires two open/click cycles — first to add to dest list (wait for button to change to "Saved (2)"), then re-open to remove from source.
 
-**tsx for execution:** esbuild-based, fast startup (~0.3s). No separate compilation step needed.
+**Bounding box filtering:** Faster and more reliable than address string matching for Korean/English variants.
 
-## What's NOT built yet (Phase 2)
+## Config
 
-Moving pins: open each Seoul place from the "Wanna Go" sidebar list, click the bookmark button, uncheck "Wanna Go", check "Seoul WTG". Needs resume support (save progress after each move).
-
-## Config that needs updating per-user
-
-- `config.getlistUrl` — re-capture from network tab if it stops working (session token expires)
-- `config.totalPlaces` — update if the list size changes
-- `config.destList` — must be created manually in Google Maps before running Phase 2
+```ts
+sourceList: 'Want to go'   // must match Maps list name exactly
+destList: 'Seoul WTG'      // must be created manually in Maps first
+bounds: { ... }            // lat/lng box for the target city
+pageSize: 500              // items per API page (Maps max)
+```
 
 ## tmp/ directory
 
-Gitignored. Used for output files (`places.json`, `seoul-places.json`) and any debug dumps. Created automatically by the script.
+Gitignored. Created automatically.
+- `places.json` — all extracted places
+- `seoul-places.json` — filtered places within bounds
+- `progress.json` — successfully moved place URLs (for resume)
+- `failed.json` — places that failed to move (for manual review)
+- `failure-screenshot.png` — screenshot on save button not found
