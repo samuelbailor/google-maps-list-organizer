@@ -45,7 +45,7 @@ Uses Chrome's remote debugging protocol (CDP) — `pnpm run launch-chrome` opens
 ### ✅ Phase 1: Data Extraction
 - Navigates to source list and intercepts `getlist` request automatically
 - Paginates via cursor token to fetch all places (~2,900+)
-- Deduplicates by URL, drops unnamed entries
+- Deduplicates by name+coordinates, drops unnamed entries
 - Filters by configurable lat/lng bounding box
 - Outputs `tmp/places.json` and `tmp/{dest-list}-places.json`
 
@@ -73,9 +73,4 @@ Uses Chrome's remote debugging protocol (CDP) — `pnpm run launch-chrome` opens
 
 ## Setup
 
-1. `pnpm install`
-2. `pnpm run launch-chrome` — opens Chrome with remote debugging on port 9222
-3. Sign into Google Maps (one-time — session saved to `.chrome-session/`)
-4. Create the destination list manually in Google Maps (e.g. "Tokyo WTG")
-5. `pnpm extract` — fetches all places, writes `tmp/{dest-list}-places.json`
-6. `pnpm move` — moves matching places to dest list
+See [README.md](README.md) for usage instructions.
