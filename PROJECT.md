@@ -22,7 +22,7 @@ The API returns 500 places per page. Each response includes a next-page cursor a
 Places are filtered using a lat/lng bounding box defined in `config.ts`. No geocoding API needed — coordinates come directly from the `getlist` response.
 
 ### Move Automation
-`pnpm move` reads `tmp/seoul-places.json` and for each place:
+`pnpm move` reads `tmp/{dest-list}-places.json` and for each place:
 1. Navigates to its Maps search URL
 2. If multiple results appear, clicks the one marked "Saved in Want to go"
 3. Opens the save picker, adds to dest list, re-opens picker, removes from source list
@@ -47,7 +47,7 @@ Uses Chrome's remote debugging protocol (CDP) — `pnpm run launch-chrome` opens
 - Paginates via cursor token to fetch all places (~2,900+)
 - Deduplicates by URL, drops unnamed entries
 - Filters by configurable lat/lng bounding box
-- Outputs `tmp/places.json` and `tmp/seoul-places.json`
+- Outputs `tmp/places.json` and `tmp/{dest-list}-places.json`
 
 ### ✅ Phase 2: Move Automation (in progress)
 - Navigates to each place, finds the correct result in multi-result pages
@@ -75,6 +75,6 @@ Uses Chrome's remote debugging protocol (CDP) — `pnpm run launch-chrome` opens
 1. `pnpm install`
 2. `pnpm run launch-chrome` — opens Chrome with remote debugging on port 9222
 3. Sign into Google Maps (one-time — session saved to `.chrome-session/`)
-4. Create the destination list manually in Google Maps (e.g. "Seoul WTG")
-5. `pnpm extract` — fetches all places, writes `tmp/seoul-places.json`
-6. `pnpm move` — moves Seoul places to dest list
+4. Create the destination list manually in Google Maps (e.g. "Tokyo WTG")
+5. `pnpm extract` — fetches all places, writes `tmp/{dest-list}-places.json`
+6. `pnpm move` — moves matching places to dest list

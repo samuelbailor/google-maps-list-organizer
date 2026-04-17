@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import { chromium, Page } from 'playwright';
-import { config } from './config';
+import { config, destSlug } from './config';
 import { SavedPlace } from './types';
 
 const PROGRESS_FILE = 'tmp/progress.json';
@@ -171,7 +171,7 @@ async function movePlaceToList(page: Page, place: SavedPlace): Promise<boolean> 
   await page.keyboard.press('Escape');
 
   // Write note to the dest list entry if one exists
-  // The textarea with aria-label="Add note" appears under the Seoul WTG row;
+  // The textarea with aria-label="Add note" appears under the dest list row;
   // focus is automatic after adding to the list so we just wait and type.
   if (place.note) {
     await page.waitForTimeout(PAUSE_MS);
@@ -188,18 +188,18 @@ async function movePlaceToList(page: Page, place: SavedPlace): Promise<boolean> 
 }
 
 async function main() {
-  const seoulPlaces: SavedPlace[] = JSON.parse(
-    fs.readFileSync('tmp/seoul-places.json', 'utf-8')
+  const destPlaces: SavedPlace[] = JSON.parse(
+    fs.readFileSync(`tmp/${destSlug}-places.json`, 'utf-8')
   );
 
   const done = loadProgress();
   const previouslyFailed = retryFailed ? new Set<string>() : loadFailed();
-  const remaining = seoulPlaces
+  const remaining = destPlaces
     .filter(p => !done.has(placeKey(p)) && !previouslyFailed.has(placeKey(p)))
     .slice(0, isFinite(limit) ? limit : undefined);
 
   const skippedFailed = retryFailed ? 0 : previouslyFailed.size;
-  console.log(`Seoul places: ${seoulPlaces.length} total, ${done.size} moved, ${skippedFailed > 0 ? `${skippedFailed} skipped (failed), ` : ''}${remaining.length} to process`);
+  console.log(`${config.destList}: ${destPlaces.length} total, ${done.size} moved, ${skippedFailed > 0 ? `${skippedFailed} skipped (failed), ` : ''}${remaining.length} to process`);
   if (dryRun) console.log('DRY RUN — navigating only, no changes\n');
   else console.log('');
 

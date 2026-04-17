@@ -31,7 +31,7 @@ pnpm run launch-chrome
 ```
 Chrome must be fully quit first. Sign into Google Maps in the window that opens — session is saved to `.chrome-session/` for future runs.
 
-**Step 2 — Create your destination list** manually in Google Maps (e.g. "Seoul WTG").
+**Step 2 — Create your destination list** manually in Google Maps (e.g. "Tokyo WTG").
 
 **Step 3 — Extract:**
 ```bash
@@ -39,7 +39,7 @@ pnpm extract
 ```
 Navigates to your source list, captures all places via the internal API, and writes:
 - `tmp/places.json` — all saved places with coordinates and notes
-- `tmp/seoul-places.json` — places within the configured bounding box
+- `tmp/{dest-list}-places.json` — places within the configured bounding box
 
 **Step 4 — Move:**
 ```bash
@@ -61,14 +61,13 @@ Edit `src/config.ts`:
 ```ts
 export const config = {
   sourceList: 'Want to go',       // your source list name
-  destList: 'Seoul WTG',          // destination list (must exist in Maps)
-  bounds: {                        // lat/lng bounding box for your target city
-    latMin: 37.40, latMax: 37.72,
-    lngMin: 126.75, lngMax: 127.25
-  },
+  destList: 'Tokyo WTG',          // destination list (must exist in Maps)
+  bounds: CITY_BOUNDS.tokyo,      // or set custom: { latMin, latMax, lngMin, lngMax }
   pageSize: 500,
 };
 ```
+
+Built-in city presets are in `CITY_BOUNDS` — pick one or define your own. Visualize any bounding box at [bboxfinder.com](http://bboxfinder.com).
 
 ## Project status
 

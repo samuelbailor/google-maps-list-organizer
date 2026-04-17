@@ -8,7 +8,7 @@ Playwright + TypeScript CLI that bulk-organizes Google Maps saved places by city
 
 ```bash
 pnpm install              # install deps
-pnpm extract              # fetch all places → tmp/places.json + tmp/seoul-places.json
+pnpm extract              # fetch all places → tmp/places.json + tmp/{dest-list}-places.json
 pnpm move                 # move matching places to dest list
 pnpm move --limit=N       # test with N places
 pnpm move --dry-run       # navigate only, no changes
@@ -18,8 +18,8 @@ pnpm run launch-chrome    # open Chrome with CDP debug port (must quit Chrome fi
 
 ## Source files
 
-- `src/extract.ts` — navigates to source list, intercepts `getlist` API request, paginates via cursor token, filters by bounding box, writes `tmp/places.json` + `tmp/seoul-places.json`
-- `src/move.ts` — reads `tmp/seoul-places.json`, moves each place via Maps UI with resume/progress support
+- `src/extract.ts` — navigates to source list, intercepts `getlist` API request, paginates via cursor token, filters by bounding box, writes `tmp/places.json` + `tmp/{dest-list}-places.json`
+- `src/move.ts` — reads `tmp/{dest-list}-places.json`, moves each place via Maps UI with resume/progress support
 - `src/config.ts` — all user-configurable values (list names, bounding box, page size)
 - `src/types.ts` — `SavedPlace` interface
 
@@ -37,8 +37,8 @@ pnpm run launch-chrome    # open Chrome with CDP debug port (must quit Chrome fi
 
 ```ts
 sourceList: 'Want to go'   // must match Maps list name exactly
-destList: 'Seoul WTG'      // must be created manually in Maps first
-bounds: { ... }            // lat/lng box for the target city
+destList: 'Tokyo WTG'      // must be created manually in Maps first
+bounds: CITY_BOUNDS.tokyo  // or custom { latMin, latMax, lngMin, lngMax }
 pageSize: 500              // items per API page (Maps max)
 ```
 
@@ -46,7 +46,7 @@ pageSize: 500              // items per API page (Maps max)
 
 Gitignored. Created automatically.
 - `places.json` — all extracted places
-- `seoul-places.json` — filtered places within bounds
-- `progress.json` — successfully moved place URLs (for resume)
+- `{dest-list}-places.json` — filtered places within bounds
+- `progress.json` — successfully moved places (for resume)
 - `failed.json` — places that failed to move (for manual review)
-- `failure-screenshot.png` — screenshot on save button not found
+- `screenshots/failure-{name}.png` — screenshot when save button not found

@@ -12,3 +12,6 @@ export const config = {
 
   pageSize: 500,
 };
+
+// e.g. "Hong Kong WTG" → "hong-kong-wtg"
+export const destSlug = config.destList.toLowerCase().replace(/\s+/g, '-');

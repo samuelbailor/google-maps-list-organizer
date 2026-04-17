@@ -1,9 +1,9 @@
 import * as fs from 'fs';
 import { chromium, Page } from 'playwright';
-import { config } from './config';
+import { config, destSlug } from './config';
 import { SavedPlace } from './types';
 
-function isSeoul(lat: number, lng: number): boolean {
+function isInBounds(lat: number, lng: number): boolean {
   const { latMin, latMax, lngMin, lngMax } = config.bounds;
   return lat >= latMin && lat <= latMax && lng >= lngMin && lng <= lngMax;
 }
@@ -125,16 +125,16 @@ async function main() {
   const dupeCount = allPlaces.length - uniquePlaces.length;
   if (dupeCount > 0) console.log(`Removed ${dupeCount} duplicates/unnamed entries`);
 
-  const seoulPlaces = uniquePlaces.filter(p => isSeoul(p.coordinates.lat, p.coordinates.lng));
+  const destPlaces = uniquePlaces.filter(p => isInBounds(p.coordinates.lat, p.coordinates.lng));
 
   fs.mkdirSync('tmp', { recursive: true });
   fs.writeFileSync('tmp/places.json', JSON.stringify(uniquePlaces, null, 2));
-  fs.writeFileSync('tmp/seoul-places.json', JSON.stringify(seoulPlaces, null, 2));
+  fs.writeFileSync(`tmp/${destSlug}-places.json`, JSON.stringify(destPlaces, null, 2));
 
   console.log(`\nTotal: ${uniquePlaces.length} places`);
-  console.log(`Seoul: ${seoulPlaces.length} places`);
+  console.log(`${config.destList}: ${destPlaces.length} places`);
   console.log('→ tmp/places.json');
-  console.log('→ tmp/seoul-places.json');
+  console.log(`→ tmp/${destSlug}-places.json`);
 
   await browser.close();
 }
