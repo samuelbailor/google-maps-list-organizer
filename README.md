@@ -1,4 +1,4 @@
-# google-maps-list-organizer
+# Google Maps List Organizer
 
 Bulk-move saved places between Google Maps lists by city.
 
@@ -73,6 +73,12 @@ export const config = {
 ```
 
 Built-in city presets are in `CITY_BOUNDS` — pick one or define your own. Visualize any bounding box at [bboxfinder.com](http://bboxfinder.com).
+
+## Why this exists
+
+Google Maps has no built-in way to bulk move saved places between lists, organize pins by city, or split a large "Want to Go" list into smaller city-specific lists. If you've ever saved hundreds of places across multiple cities and wanted to reorganize them without clicking through each one manually — this tool does that.
+
+**Related searches that land here:** bulk move Google Maps pins · organize Google Maps saved places · split Want to Go list by city · Google Maps list management · export Google Maps saved places · move pins between Google Maps lists · Google Maps bulk edit saved places
 
 ## Project status
 
