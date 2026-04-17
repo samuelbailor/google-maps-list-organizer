@@ -49,17 +49,18 @@ Uses Chrome's remote debugging protocol (CDP) — `pnpm run launch-chrome` opens
 - Filters by configurable lat/lng bounding box
 - Outputs `tmp/places.json` and `tmp/{dest-list}-places.json`
 
-### ✅ Phase 2: Move Automation (in progress)
+### ✅ Phase 2: Move Automation
 - Navigates to each place, finds the correct result in multi-result pages
 - Adds to dest list, removes from source list in two separate picker interactions
+- Detects permanently closed places and removes them from all lists
 - Transfers notes to the new list entry
-- Resume support via `tmp/progress.json`
-- Failed places logged to `tmp/failed.json`
+- Resume support via `tmp/progress.json`, keyed by name+address (stable across re-extractions)
+- Previously failed places skipped by default; `--retry` flag to attempt them again
+- Per-place failure screenshots saved to `tmp/screenshots/`
 - `--limit=N` and `--dry-run` flags for safe testing
+- ~91% success rate on Taiwan (64 places); remaining failures are places renamed or deleted since saving
 
 ### Future
-- Generalize city config: accept any bounding box, source list, dest list
-- Handle edge cases: closed places, places renamed since extraction
 - CLI interface instead of editing `config.ts`
 - Rate limiting detection and automatic backoff
 

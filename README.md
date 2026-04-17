@@ -74,6 +74,10 @@ export const config = {
 
 Built-in city presets are in `CITY_BOUNDS` — pick one or define your own. Visualize any bounding box at [bboxfinder.com](http://bboxfinder.com).
 
+## Performance
+
+**~91% success rate** tested across Seoul, Hong Kong, and Taiwan (~400 places). 
+
 ## Why this exists
 
 Google Maps has no built-in way to bulk move saved places between lists, organize pins by city, or split a large "Want to Go" list into smaller city-specific lists. If you've ever saved hundreds of places across multiple cities and wanted to reorganize them without clicking through each one manually — this tool does that.
